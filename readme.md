@@ -1,9 +1,8 @@
-
 CodeLab — Code Quality Analyzer
 
 An online coding workspace for writing, executing, and analyzing Python and Go code.
 
-Launch CodeLab · View Repository · Report an Issue
+🚀 Launch CodeLab · View Repository · Report an Issue
 
 Overview
 
@@ -16,7 +15,7 @@ The application runs directly in your browser without requiring a local developm
 Features
 Code Editor: Write and edit Python 3 and Go source code.
 Online Code Execution: Submit code to the Judge0 API and review execution output, compilation messages, and runtime errors.
-Static Code Analysis: Detect selected coding patterns and potential issues using configurable rule-based checks.
+Static Code Analysis: Detect selected coding patterns and potential issues using rule-based checks.
 Quality Score: Generate a heuristic score based on detected findings and their assigned penalties.
 Quality Metrics: Review readability, safety indicators, and maintainability estimates.
 Actionable Recommendations: Get suggestions for improving code structure, error handling, naming conventions, and more.
@@ -39,7 +38,7 @@ Review the detected issues, quality metrics, and recommendations.
 Use Save Project and Load Project to manage your work in the same browser.
 Run Locally
 Clone the repository:
-git clone https://github.com/bimcoordinatorr/Usolving.git
+[git clone https://github.com/bimcoordinatorr/Usolving.git](https://bimcoordinatorr.github.io/Usolving/)
 
 Open the project directory:
 cd Usolving
@@ -71,7 +70,7 @@ Naming conventions and maintainability indicators.
 
 The analyzer calculates a score starting at 100 and subtracts predefined penalties for detected findings.
 
-Important: The score is a heuristic indicator, not a probability of correctness, a formal security assessment, or a performance benchmark. The analyzer does not understand every possible program behavior and may produce false positives or miss real issues. Always review its findings and test your code independently.
+Important: The score is a heuristic indicator, not a probability of correctness, a formal security assessment, or a performance benchmark. The analyzer may produce false positives or miss real issues. Always review its findings and test your code independently.
 
 Execution and Privacy
 Online execution depends on the availability of the Judge0 API and your network connection.
@@ -105,7 +104,7 @@ For bugs or feature requests, use the GitHub Issues page.
 
 License
 
-This project is licensed under the MIT License. See the LICENSE file for the full license text.
+This project is intended to use the MIT License. See the LICENSE file for the full license text.
 
 Acknowledgments
 Judge0 for online code execution infrastructure.
