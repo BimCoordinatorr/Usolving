@@ -1,0 +1,1004 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CodeLab - Code Quality Analyzer</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #101218;
+  --panel: #191d27;
+  --input: #10141c;
+  --border: #2b3241;
+  --text: #e5e9f0;
+  --muted: #929bad;
+  --accent: #00c8d7;
+  --green: #45d483;
+  --yellow: #ffca64;
+  --red: #ff707a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+}
+
+header {
+  padding: 22px;
+  text-align: center;
+  background: #171b24;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1.6rem;
+}
+
+header p {
+  color: var(--muted);
+  margin: 8px 0 0;
+  font-size: .9rem;
+}
+
+main {
+  max-width: 1500px;
+  margin: auto;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.panel {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.description {
+  font-size: .85rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+
+textarea, pre, select, input {
+  width: 100%;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 170px;
+  font: .92rem/1.6 Consolas, Monaco, monospace;
+  direction: ltr;
+  text-align: left;
+}
+
+#code-input { min-height: 340px; }
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  min-height: 120px;
+  margin: 0;
+  font: .85rem/1.65 Consolas, monospace;
+  direction: ltr;
+  text-align: left;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: #071419;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .2s, transform .2s;
+}
+
+button:hover { opacity: .88; }
+button:active { transform: scale(.98); }
+button:disabled { opacity: .5; cursor: wait; }
+
+button.secondary {
+  color: var(--text);
+  background: #303849;
+}
+
+button.analyze {
+  background: #a78bfa;
+  color: #17102b;
+}
+
+button.success {
+  background: #45d483;
+  color: #102419;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.row select { width: auto; min-width: 150px; }
+
+.status {
+  font-size: .82rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.score-layout {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+.score-circle {
+  width: 108px;
+  height: 108px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--accent) 0deg, #303849 0deg);
+  position: relative;
+}
+
+.score-circle::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  background: var(--panel);
+  border-radius: 50%;
+}
+
+.score-circle strong {
+  position: relative;
+  font-size: 1.6rem;
+}
+
+.score-meta { flex: 1; min-width: 130px; }
+.score-meta h3 { margin: 0 0 8px; }
+
+.score-meta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.metric {
+  display: grid;
+  grid-template-columns: 105px 1fr 38px;
+  align-items: center;
+  gap: 9px;
+  font-size: .82rem;
+  margin: 12px 0;
+}
+
+.bar {
+  height: 7px;
+  background: #303849;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+}
+
+.issue {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--input);
+  border-left: 3px solid var(--yellow);
+  margin-bottom: 9px;
+}
+
+.issue.error { border-left-color: var(--red); }
+.issue.info { border-left-color: var(--accent); }
+.issue.good { border-left-color: var(--green); }
+
+.issue h4 {
+  margin: 0 0 7px;
+  font-size: .9rem;
+}
+
+.issue p {
+  color: #bdc5d4;
+  font-size: .83rem;
+  line-height: 1.6;
+  margin: 5px 0;
+}
+
+.tag {
+  display: inline-block;
+  font-size: .72rem;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: #303849;
+  color: #d8deea;
+  margin-bottom: 6px;
+}
+
+#analysis-results { min-height: 180px; }
+
+footer {
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+@media (max-width: 760px) {
+  main { grid-template-columns: 1fr; padding: 10px; }
+  #code-input { min-height: 260px; }
+  header h1 { font-size: 1.3rem; }
+  .panel { padding: 13px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>CodeLab</h1>
+  <p>Online Code Runner · Code Quality Analyzer · Improvement Advisor</p>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Problem Description</h2>
+    <p class="description">Describe the problem you are trying to solve.</p>
+    <textarea id="problem-description" placeholder="Describe your programming problem..."></textarea>
+    <h2>Notes</h2>
+    <textarea id="notes" placeholder="Write your notes here..." style="min-height:100px"></textarea>
+    <div class="actions">
+      <button id="save-data" class="secondary">Save Project</button>
+      <button id="load-data" class="secondary">Load Project</button>
+      <button id="clear-data" class="secondary">Clear Fields</button>
+    </div>
+    <div id="save-status" class="status">Project data is stored in this browser.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Code Editor</h2>
+    <div class="row">
+      <label for="language">Language</label>
+      <select id="language">
+        <option value="python">Python 3</option>
+        <option value="go">Go</option>
+      </select>
+    </div>
+    <textarea id="code-input" spellcheck="false" placeholder="Write your code here..."></textarea>
+    <div class="actions">
+      <button id="run-code">Run Code</button>
+      <button id="analyze-code" class="analyze">Analyze Code</button>
+      <button id="format-hints" class="secondary">Show Coding Rules</button>
+    </div>
+    <div id="run-status" class="status">Ready to run.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Execution Output</h2>
+    <p class="description">Runtime output, compilation messages, and execution errors.</p>
+    <pre id="output">Your program output will appear here.</pre>
+  </section>
+
+  <section class="panel">
+    <h2>Code Quality Report</h2>
+    <p class="description">Rule-based static analysis. Review findings before changing your code.</p>
+    <div class="score-layout">
+      <div id="score-circle" class="score-circle">
+        <strong id="score-value">--</strong>
+      </div>
+      <div class="score-meta">
+        <h3 id="score-label">Not analyzed yet</h3>
+        <p id="score-summary">Run the analyzer to evaluate code quality.</p>
+      </div>
+    </div>
+    <div id="metrics">
+      <p class="description">Quality metrics will appear here after analysis.</p>
+    </div>
+    <div class="row">
+      <span class="tag">Static Analysis</span>
+      <span class="tag">Rule-Based Score</span>
+      <span class="tag">No AI API Required</span>
+    </div>
+    <div id="analysis-results">
+      <p class="description">No analysis report available.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  CodeLab · Static analysis is heuristic and cannot guarantee correctness or performance.
+</footer>
+
+<script>
+
+const $ = id => document.getElementById(id);
+
+const runButton = $('run-code');
+const analyzeButton = $('analyze-code');
+const codeInput = $('code-input');
+const languageSelect = $('language');
+const output = $('output');
+const runStatus = $('run-status');
+
+const languageIds = {
+  python: 71,
+  go: 60
+};
+
+const API_URL =
+  'https://ce.judge0.com/submissions?base64_encoded=false&wait=true';
+
+function addIssue(list, severity, title, description, suggestion, points = 0) {
+  list.push({ severity, title, description, suggestion, points });
+}
+
+function analyzeCode(code, language) {
+  const issues = [];
+  const lines = code.split('\n');
+  const nonEmpty = lines.filter(line => line.trim().length > 0);
+  const trimmed = lines.map(line => line.trim());
+
+  if (!code.trim()) {
+    return {
+      score: 0,
+      issues: [{
+        severity: 'error',
+        title: 'Empty source code',
+        description: 'There is no code to analyze.',
+        suggestion: 'Write a program and run the analysis again.',
+        points: 0
+      }],
+      metrics: { readability: 0, safety: 0, maintainability: 0 },
+      summary: 'No code was provided.'
+    };
+  }
+
+  const longLines = lines.filter(line => line.length > 100);
+
+  if (longLines.length) {
+    addIssue(
+      issues, 'warning', 'Long lines detected',
+      `${longLines.length} line(s) exceed 100 characters.`,
+      'Split long expressions, extract helper functions, and keep lines readable.',
+      Math.min(10, longLines.length * 2)
+    );
+  }
+
+  const trailingWhitespace = lines.filter(
+    line => line.length > 0 && /[ \t]+$/.test(line)
+  ).length;
+
+  if (trailingWhitespace) {
+    addIssue(
+      issues, 'info', 'Trailing whitespace',
+      `${trailingWhitespace} line(s) contain trailing spaces or tabs.`,
+      'Remove unnecessary whitespace. Enable whitespace trimming in your editor.',
+      Math.min(4, trailingWhitespace)
+    );
+  }
+
+  const todoCount = (code.match(/\b(TODO|FIXME|XXX)\b/g) || []).length;
+
+  if (todoCount) {
+    addIssue(
+      issues, 'info', 'Unresolved work markers',
+      `Found ${todoCount} TODO, FIXME, or XXX marker(s).`,
+      'Resolve these items or track them in your issue tracker.',
+      Math.min(5, todoCount)
+    );
+  }
+
+  const branchCount = language === 'python'
+    ? (code.match(/\b(if|elif|for|while|except|with)\b/g) || []).length
+    : (code.match(/\b(if|for|switch|case|select|defer)\b/g) || []).length;
+
+  const functionCount = language === 'python'
+    ? (code.match(/^\s*def\s+\w+/gm) || []).length
+    : (code.match(/^\s*func\s+/gm) || []).length;
+
+  const averageLineLength = nonEmpty.length
+    ? Math.round(nonEmpty.reduce(
+        (sum, line) => sum + line.trim().length, 0
+      ) / nonEmpty.length)
+    : 0;
+
+  if (branchCount > 15) {
+    addIssue(
+      issues, 'warning', 'High control-flow density',
+      `Detected approximately ${branchCount} branching or loop keywords.`,
+      'Consider extracting cohesive logic into smaller functions. This count is only a rough indicator, not a cyclomatic-complexity measurement.',
+      6
+    );
+  }
+
+  if (functionCount === 0 && nonEmpty.length > 35) {
+    addIssue(
+      issues, 'warning', 'Large code block without functions',
+      'The code has more than 35 non-empty lines but no detected function declarations.',
+      'Consider splitting independent responsibilities into small, descriptive functions.',
+      5
+    );
+  }
+
+  if (language === 'python') {
+    if (/\bexcept\s*:/.test(code)) {
+      addIssue(
+        issues, 'error', 'Bare exception handler',
+        'A bare except clause catches almost every exception, including interruption signals.',
+        'Catch specific exceptions such as ValueError or OSError, and handle them intentionally.',
+        12
+      );
+    }
+
+    if (/\beval\s*\(|\bexec\s*\(/.test(code)) {
+      addIssue(
+        issues, 'error', 'Dynamic code execution',
+        'eval() or exec() was detected. Executing dynamic input can introduce serious security risks.',
+        'Avoid executing untrusted strings. Use explicit parsing or a restricted data format.',
+        15
+      );
+    }
+
+    if (/^\s*print\s*\(/m.test(code)) {
+      addIssue(
+        issues, 'info', 'Console output detected',
+        'The program prints directly to the console.',
+        'This is fine for scripts and exercises. For reusable modules, consider returning values or using logging.',
+        1
+      );
+    }
+
+    if (/^\s*except\s+\w+\s*:\s*(pass)?\s*$/m.test(code)) {
+      addIssue(
+        issues, 'warning', 'Potentially hidden errors',
+        'An exception handler may suppress an error without reporting or recovering from it.',
+        'Log the exception, handle the failure, or re-raise it when appropriate.',
+        7
+      );
+    }
+
+    if (/^\s*def\s+\w+\s*\([^)]*=\s*(\[\]|\{\})/m.test(code)) {
+      addIssue(
+        issues, 'error', 'Mutable default argument',
+        'A function parameter may use a mutable list or dictionary as its default value.',
+        'Use None as the default and create a new list or dictionary inside the function.',
+        12
+      );
+    }
+
+    if (/\bexcept\s+Exception\b/.test(code)) {
+      addIssue(
+        issues, 'warning', 'Broad exception handling',
+        'Catching Exception can conceal unrelated failures when used too broadly.',
+        'Catch the specific exception types expected at that point in the program.',
+        5
+      );
+    }
+
+    if (/\bglobal\s+\w+/.test(code)) {
+      addIssue(
+        issues, 'info', 'Global state detected',
+        'The code modifies or references a global variable.',
+        'Prefer explicit parameters and return values where practical.',
+        3
+      );
+    }
+
+    if (/\bwhile\s+True\s*:/.test(code) && !/\bbreak\b/.test(code)) {
+      addIssue(
+        issues, 'warning', 'Potential infinite loop',
+        'A while True loop was found without a detected break statement.',
+        'Verify that the loop has a valid exit condition. The analyzer may not understand exits in called functions.',
+        6
+      );
+    }
+
+    if (/\bimport\s+\*/.test(code)) {
+      addIssue(
+        issues, 'warning', 'Wildcard import',
+        'Wildcard imports make it harder to identify where names originate.',
+        'Import the specific functions or modules you need.',
+        4
+      );
+    }
+
+    const tabs = lines.filter(line => /^\t+/.test(line)).length;
+
+    if (tabs) {
+      addIssue(
+        issues, 'info', 'Tab-based indentation',
+        'Tabs were detected at the beginning of lines.',
+        'Use consistent four-space indentation in Python projects.',
+        2
+      );
+    }
+
+    if (/\bassert\b/.test(code)) {
+      addIssue(
+        issues, 'info', 'Assertions detected',
+        'Assertions are present in the program.',
+        'Use assertions for internal invariants and tests, not for validating untrusted input.',
+        1
+      );
+    }
+
+    if (/\binput\s*\(/.test(code)) {
+      addIssue(
+        issues, 'info', 'Interactive input required',
+        'The code uses input(), which may require standard-input configuration to run online.',
+        'If execution hangs or receives empty input, configure stdin in your execution service.',
+        0
+      );
+    }
+
+    const functionNames = [...code.matchAll(
+      /^\s*def\s+([A-Za-z_]\w*)/gm
+    )].map(match => match[1]);
+
+    if (functionNames.some(name => !/^[a-z_][a-z0-9_]*$/.test(name))) {
+      addIssue(
+        issues, 'info', 'Naming convention',
+        'One or more function names do not follow the usual Python snake_case convention.',
+        'Use lowercase words separated by underscores for function and variable names.',
+        2
+      );
+    }
+  }
+
+  if (language === 'go') {
+    if (/\bpanic\s*\(/.test(code)) {
+      addIssue(
+        issues, 'warning', 'Explicit panic detected',
+        'The code calls panic(), which terminates normal control flow.',
+        'Return an error when failure can be handled by the caller. Reserve panic for unrecoverable conditions.',
+        8
+      );
+    }
+
+    if (/\bfmt\.Print(?:ln|f)?\s*\(/.test(code)) {
+      addIssue(
+        issues, 'info', 'Direct console output',
+        'The code writes directly to standard output.',
+        'This is suitable for command-line programs. Reusable packages should usually return values or errors.',
+        1
+      );
+    }
+
+    if (/,\s*_\s*:?=/.test(code) || /\b_\s*=\s*\w+\s*\(/.test(code)) {
+      addIssue(
+        issues, 'warning', 'Potentially ignored result',
+        'An underscore assignment may discard a return value or error.',
+        'Inspect discarded values, especially errors, and handle them when necessary.',
+        7
+      );
+    }
+
+    if (/\bgo\s+\w/.test(code)) {
+      addIssue(
+        issues, 'info', 'Concurrency requires review',
+        'The source appears to start concurrent work.',
+        'Review goroutine lifetimes, synchronization, cancellation, and possible data races.',
+        0
+      );
+    }
+
+    if (/\binterface\s*\{\s*\}/.test(code)) {
+      addIssue(
+        issues, 'info', 'Empty interface usage',
+        'An empty interface may reduce compile-time type safety.',
+        'Use any or interface{} only when dynamic values are needed; prefer concrete types when possible.',
+        2
+      );
+    }
+
+    if (/\bfunc\s+init\s*\(/.test(code)) {
+      addIssue(
+        issues, 'info', 'Initialization side effects',
+        'The package defines an init function.',
+        'Keep initialization predictable and avoid unnecessary hidden side effects.',
+        1
+      );
+    }
+  }
+
+  const repeatedLines = trimmed.filter((line, index) =>
+    line.length >= 12 && trimmed.indexOf(line) !== index
+  );
+
+  if (repeatedLines.length >= 3) {
+    addIssue(
+      issues, 'info', 'Repeated source lines',
+      `Found approximately ${repeatedLines.length} repeated non-trivial line occurrence(s).`,
+      'Review repeated logic and extract a helper only when it improves clarity.',
+      4
+    );
+  }
+
+  if (nonEmpty.length > 250) {
+    addIssue(
+      issues, 'warning', 'Large source file',
+      `The file contains ${nonEmpty.length} non-empty lines.`,
+      'Consider separating distinct responsibilities into modules or smaller functions.',
+      5
+    );
+  }
+
+  const deduction = issues.reduce(
+    (sum, issue) => sum + issue.points, 0
+  );
+
+  const score = Math.max(0, Math.min(100, 100 - deduction));
+
+  const readability = Math.max(
+    0,
+    Math.min(100,
+      100
+      - longLines.length * 3
+      - trailingWhitespace
+      - Math.max(0, averageLineLength - 65)
+      - (functionCount === 0 && nonEmpty.length > 35 ? 10 : 0)
+    )
+  );
+
+  const safety = Math.max(
+    0,
+    100
+      - issues.filter(i => i.severity === 'error')
+          .reduce((sum, issue) => sum + issue.points, 0)
+      - issues.filter(i => /security|exception|panic|ignored result/i.test(i.title))
+          .reduce((sum, issue) => sum + Math.ceil(issue.points / 2), 0)
+  );
+
+  const maintainability = Math.max(
+    0,
+    Math.min(100,
+      100
+      - (functionCount === 0 && nonEmpty.length > 35 ? 15 : 0)
+      - Math.min(25, branchCount * 1.5)
+      - repeatedLines.length * 2
+      - (nonEmpty.length > 250 ? 10 : 0)
+    )
+  );
+
+  const errorCount = issues.filter(i => i.severity === 'error').length;
+
+  let summary;
+
+  if (errorCount > 0) {
+    summary = 'Potentially serious issues were detected. Review the findings before relying on this code.';
+  } else if (score >= 90) {
+    summary = 'The rule-based checks found relatively few concerns. Testing is still required.';
+  } else if (score >= 75) {
+    summary = 'The code has a reasonable starting point, with opportunities for improvement.';
+  } else {
+    summary = 'Several improvement opportunities were detected. Review the report below.';
+  }
+
+  return {
+    score,
+    issues,
+    metrics: {
+      readability: Math.round(readability),
+      safety: Math.round(safety),
+      maintainability: Math.round(maintainability)
+    },
+    summary,
+    stats: {
+      lines: lines.length,
+      nonEmpty: nonEmpty.length,
+      functions: functionCount,
+      branches: branchCount,
+      averageLineLength,
+      errors: errorCount,
+      warnings: issues.filter(i => i.severity === 'warning').length
+    }
+  };
+}
+
+function renderAnalysis(report) {
+  const score = report.score;
+
+  $('score-value').textContent = score;
+
+  $('score-circle').style.background =
+    `conic-gradient(${
+      score >= 85 ? 'var(--green)' :
+      score >= 65 ? 'var(--yellow)' : 'var(--red)'
+    } ${score * 3.6}deg, #303849 0deg)`;
+
+  $('score-label').textContent =
+    score >= 90 ? 'Excellent by current rules' :
+    score >= 75 ? 'Good, with improvements' :
+    score >= 60 ? 'Needs improvement' :
+    'Review recommended';
+
+  $('score-summary').textContent = report.summary;
+
+  const metricNames = {
+    readability: 'Readability',
+    safety: 'Safety indicators',
+    maintainability: 'Maintainability'
+  };
+
+  $('metrics').innerHTML = Object.entries(report.metrics)
+    .map(([key, value]) => `
+      <div class="metric">
+        <span>${metricNames[key]}</span>
+        <div class="bar">
+          <span style="width:${value}%"></span>
+        </div>
+        <strong>${value}</strong>
+      </div>
+    `).join('') + `
+      <p class="description">
+        ${report.stats.lines} total lines ·
+        ${report.stats.nonEmpty} non-empty lines ·
+        ${report.stats.functions} detected functions ·
+        ${report.stats.branches} branching/loop keywords
+      </p>
+      <p class="description">
+        The score starts at 100 and subtracts fixed rule-based penalties.
+        It is not a probability, benchmark, or guarantee of correctness.
+      </p>
+    `;
+
+  const results = $('analysis-results');
+
+  if (!report.issues.length) {
+    results.innerHTML = `
+      <div class="issue good">
+        <h4>No configured rule violations found</h4>
+        <p>The analyzer did not detect any of its configured patterns.
+        This does not prove the code is correct, safe, or optimal.</p>
+      </div>
+    `;
+    return;
+  }
+
+  results.innerHTML = report.issues.map(issue => {
+    const css = issue.severity === 'error' ? 'error' :
+      issue.severity === 'info' ? 'info' : '';
+
+    return `
+      <div class="issue ${css}">
+        <span class="tag">
+          ${escapeHTML(issue.severity.toUpperCase())} · -${issue.points} points
+        </span>
+        <h4>${escapeHTML(issue.title)}</h4>
+        <p>${escapeHTML(issue.description)}</p>
+        <p><strong>Recommendation:</strong>
+        ${escapeHTML(issue.suggestion)}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
+analyzeButton.addEventListener('click', () => {
+  analyzeButton.disabled = true;
+
+  try {
+    const report = analyzeCode(
+      codeInput.value,
+      languageSelect.value
+    );
+
+    renderAnalysis(report);
+    runStatus.textContent = 'Static analysis completed.';
+  } catch (error) {
+    $('analysis-results').textContent =
+      'Analysis failed: ' + error.message;
+  } finally {
+    analyzeButton.disabled = false;
+  }
+});
+
+runButton.addEventListener('click', async () => {
+  const code = codeInput.value;
+  const language = languageSelect.value;
+
+  if (!code.trim()) {
+    output.textContent = 'Please enter some code first.';
+    return;
+  }
+
+  runButton.disabled = true;
+  output.textContent = 'Submitting code to Judge0...';
+  runStatus.textContent = 'Executing...';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source_code: code,
+        language_id: languageIds[language],
+        cpu_time_limit: 5,
+        wall_time_limit: 10
+      })
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || result.error || `HTTP ${response.status}`
+      );
+    }
+
+    const parts = [];
+
+    if (result.stdout) parts.push('OUTPUT:\n' + result.stdout);
+    if (result.stderr) parts.push('RUNTIME ERRORS:\n' + result.stderr);
+    if (result.compile_output) {
+      parts.push('COMPILATION OUTPUT:\n' + result.compile_output);
+    }
+    if (result.message) parts.push('MESSAGE:\n' + result.message);
+
+    if (result.status?.description) {
+      parts.push('STATUS: ' + result.status.description);
+    }
+
+    output.textContent =
+      parts.join('\n\n') || 'Execution finished without output.';
+
+    runStatus.textContent = 'Execution request completed.';
+
+  } catch (error) {
+    output.textContent =
+      'Execution request failed:\n' + error.message +
+      '\n\nCheck your API endpoint, network connection, and CORS settings.';
+
+    runStatus.textContent = 'Execution failed.';
+  } finally {
+    runButton.disabled = false;
+  }
+});
+
+$('save-data').addEventListener('click', () => {
+  try {
+    const project = {
+      problem: $('problem-description').value,
+      code: codeInput.value,
+      notes: $('notes').value,
+      language: languageSelect.value
+    };
+
+    localStorage.setItem('codelab-project', JSON.stringify(project));
+    $('save-status').textContent = 'Project saved in this browser.';
+  } catch (error) {
+    $('save-status').textContent = 'Save failed: ' + error.message;
+  }
+});
+
+$('load-data').addEventListener('click', () => {
+  try {
+    const saved = localStorage.getItem('codelab-project');
+
+    if (!saved) {
+      $('save-status').textContent = 'No saved project found.';
+      return;
+    }
+
+    const project = JSON.parse(saved);
+
+    $('problem-description').value = project.problem || '';
+    codeInput.value = project.code || '';
+    $('notes').value = project.notes || '';
+    languageSelect.value = project.language || 'python';
+
+    $('save-status').textContent = 'Project loaded successfully.';
+  } catch (error) {
+    $('save-status').textContent = 'Load failed: ' + error.message;
+  }
+});
+
+$('clear-data').addEventListener('click', () => {
+  if (!confirm('Clear all current fields? This will not delete the saved project.')) {
+    return;
+  }
+
+  $('problem-description').value = '';
+  codeInput.value = '';
+  $('notes').value = '';
+  output.textContent = 'Your program output will appear here.';
+  $('save-status').textContent = 'Fields cleared.';
+});
+
+$('format-hints').addEventListener('click', () => {
+  const language = languageSelect.value;
+
+  const rules = language === 'python'
+    ? [
+        'Use 4 spaces for indentation.',
+        'Follow snake_case naming for functions and variables.',
+        'Prefer specific exception types over bare except.',
+        'Avoid eval() and exec() on untrusted input.',
+        'Use None instead of mutable list/dictionary defaults.',
+        'Keep functions focused and reasonably small.',
+        'Use context managers such as with open(...) for files.',
+        'Add tests for edge cases and failure paths.',
+        'Use type hints when they improve clarity.',
+        'Measure performance before optimizing.'
+      ]
+    : [
+        'Run gofmt to format Go source.',
+        'Handle errors explicitly rather than discarding them.',
+        'Prefer concrete types and small interfaces.',
+        'Return errors when callers can recover from failures.',
+        'Review goroutine lifetimes and synchronization.',
+        'Use go vet and appropriate linters.',
+        'Add unit tests for edge cases.',
+        'Avoid unnecessary global state.',
+        'Run race detection when concurrency is involved.',
+        'Benchmark before attempting performance optimizations.'
+      ];
+
+  $('analysis-results').innerHTML = `
+    <div class="issue info">
+      <h4>Code Improvement Rules</h4>
+      ${rules.map(rule => `<p>• ${escapeHTML(rule)}</p>`).join('')}
+    </div>
+  `;
+});
+
+</script>
+</body>
+</html>
