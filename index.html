@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -273,11 +272,51 @@ footer {
   font-size: .8rem;
 }
 
+/* Flowchart specific styles */
+.flowchart-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.flowchart-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.flowchart-controls button {
+  padding: 6px 10px;
+  font-size: .8rem;
+}
+
+.flowchart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  text-align: center;
+  font-size: .9rem;
+}
+
+.flowchart-placeholder p {
+  max-width: 80%;
+}
+
+/* Responsive adjustments */
 @media (max-width: 760px) {
   main { grid-template-columns: 1fr; padding: 10px; }
   #code-input { min-height: 260px; }
   header h1 { font-size: 1.3rem; }
   .panel { padding: 13px; }
+  .flowchart-container { height: 300px; }
 }
 </style>
 </head>
@@ -317,6 +356,7 @@ footer {
       <button id="run-code">Run Code</button>
       <button id="analyze-code" class="analyze">Analyze Code</button>
       <button id="format-hints" class="secondary">Show Coding Rules</button>
+      <button id="generate-flowchart" class="secondary">Generate Flowchart</button>
     </div>
     <div id="run-status" class="status">Ready to run.</div>
   </section>
@@ -351,6 +391,24 @@ footer {
       <p class="description">No analysis report available.</p>
     </div>
   </section>
+
+  <!-- Flowchart Section -->
+  <section class="panel">
+    <h2>Algorithm Flowchart</h2>
+    <p class="description">Visual representation of your code logic. Generated from source code.</p>
+    <div class="flowchart-controls">
+      <button id="zoom-in" class="secondary">Zoom In</button>
+      <button id="zoom-out" class="secondary">Zoom Out</button>
+      <button id="reset-view" class="secondary">Reset View</button>
+      <button id="export-svg" class="secondary">Export SVG</button>
+      <button id="export-png" class="secondary">Export PNG</button>
+    </div>
+    <div id="flowchart-container" class="flowchart-container">
+      <div class="flowchart-placeholder">
+        <p>Click "Generate Flowchart" to visualize your code's algorithmic structure.</p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -358,6 +416,32 @@ footer {
 </footer>
 
 <script>
+// Add Mermaid.js script
+const mermaidScript = document.createElement('script');
+mermaidScript.src = 'https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js';
+document.head.appendChild(mermaidScript);
+
+// Initialize Mermaid after it loads
+mermaidScript.onload = function() {
+  if (typeof mermaid === 'undefined') {
+    console.error('Mermaid.js loaded without exposing the mermaid API.');
+    return;
+  }
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'strict',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: false
+    }
+  });
+};
+
+mermaidScript.onerror = function() {
+  console.error('Failed to load Mermaid.js from the CDN. Check your network connection.');
+};
 
 const $ = id => document.getElementById(id);
 
@@ -367,6 +451,7 @@ const codeInput = $('code-input');
 const languageSelect = $('language');
 const output = $('output');
 const runStatus = $('run-status');
+const generateFlowchartButton = $('generate-flowchart');
 
 const languageIds = {
   python: 71,
@@ -376,9 +461,20 @@ const languageIds = {
 const API_URL =
   'https://ce.judge0.com/submissions?base64_encoded=false&wait=true';
 
+// Add flowchart variables
+let flowchartContainer = $('flowchart-container');
+let zoomLevel = 1;
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+let offsetX = 0;
+let offsetY = 0;
+
 function addIssue(list, severity, title, description, suggestion, points = 0) {
   list.push({ severity, title, description, suggestion, points });
 }
+
+// ... (existing analyzeCode function remains unchanged)
 
 function analyzeCode(code, language) {
   const issues = [];
@@ -831,6 +927,165 @@ function escapeHTML(value) {
   })[char]);
 }
 
+// Flowchart generation functions
+function generateMermaidFlowchart(code, language) {
+  const sourceLines = code.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !(language === 'python' ? line.startsWith('#') : line.startsWith('//')));
+
+  if (!sourceLines.length) {
+    return 'flowchart TD\n    Start((Start))\n    End((End))\n    Start --> End';
+  }
+
+  // Mermaid treats some characters (including parentheses) as syntax.
+  // Put every source-code label inside double quotes and replace embedded
+  // double quotes with a safe HTML entity so expressions like print(8*9)
+  // are parsed as text rather than Mermaid grammar.
+  const safeLabel = value => value
+    .replace(/\s+/g, ' ')
+    .replace(/"/g, '#quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .trim()
+    .slice(0, 100);
+
+  const lines = ['flowchart TD', '    Start((Start))'];
+  let previous = 'Start';
+
+  sourceLines.forEach((line, index) => {
+    const id = `Step${index + 1}`;
+    const isDecision = language === 'python'
+      ? /^(if|elif|while|for)\b/.test(line)
+      : /^(if|for|switch|select)\b/.test(line);
+    const label = safeLabel(line) || 'Statement';
+    lines.push(`    ${id}${isDecision ? '{' : '['}"${label}"${isDecision ? '}' : ']'} `);
+    lines.push(`    ${previous} --> ${id}`);
+    previous = id;
+  });
+
+  lines.push('    End((End))');
+  lines.push(`    ${previous} --> End`);
+  return lines.join('\n');
+}
+
+async function renderFlowchart(code, language) {
+  flowchartContainer.innerHTML = '';
+
+  try {
+    if (typeof mermaid === 'undefined' || typeof mermaid.render !== 'function') {
+      throw new Error('Mermaid.js has not loaded. Check your internet connection and reload the page.');
+    }
+
+    const flowchart = generateMermaidFlowchart(code, language);
+    const renderId = `flowchart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const { svg, bindFunctions } = await mermaid.render(renderId, flowchart);
+
+    flowchartContainer.innerHTML = svg;
+    if (typeof bindFunctions === 'function') {
+      bindFunctions(flowchartContainer);
+    }
+    setupFlowchartInteraction();
+  } catch (error) {
+    console.error('Flowchart rendering error:', error);
+    flowchartContainer.innerHTML = `
+      <div class="flowchart-placeholder">
+        <p>Error generating flowchart: ${escapeHTML(error.message || String(error))}</p>
+      </div>
+    `;
+  }
+}
+
+function setupFlowchartInteraction() {
+  const svg = flowchartContainer.querySelector('svg');
+  if (!svg) return;
+
+  svg.style.cursor = 'grab';
+  svg.style.transformOrigin = '0 0';
+  svg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoomLevel})`;
+
+  // Replace previous handlers on the current SVG by using named properties.
+  svg.onmousedown = function(event) {
+    if (event.button !== 0) return;
+    isDragging = true;
+    lastX = event.clientX - offsetX;
+    lastY = event.clientY - offsetY;
+    svg.style.cursor = 'grabbing';
+    event.preventDefault();
+  };
+
+  // Global handlers are assigned rather than repeatedly registered on every render.
+  document.onmousemove = function(event) {
+    if (!isDragging) return;
+    offsetX = event.clientX - lastX;
+    offsetY = event.clientY - lastY;
+    updateFlowchartTransform();
+  };
+
+  document.onmouseup = function() {
+    isDragging = false;
+    const currentSvg = flowchartContainer.querySelector('svg');
+    if (currentSvg) currentSvg.style.cursor = 'grab';
+  };
+
+  function updateFlowchartTransform() {
+    const currentSvg = flowchartContainer.querySelector('svg');
+    if (currentSvg) {
+      currentSvg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoomLevel})`;
+    }
+  }
+}
+
+function updateFlowchartView() {
+  const svg = flowchartContainer.querySelector('svg');
+  if (svg) {
+    svg.style.transformOrigin = '0 0';
+    svg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${zoomLevel})`;
+  }
+}
+
+
+$('zoom-in').addEventListener('click', () => {
+  zoomLevel = Math.min(4, zoomLevel + 0.2);
+  updateFlowchartView();
+});
+
+$('zoom-out').addEventListener('click', () => {
+  zoomLevel = Math.max(0.2, zoomLevel - 0.2);
+  updateFlowchartView();
+});
+
+$('reset-view').addEventListener('click', () => {
+  zoomLevel = 1;
+  offsetX = 0;
+  offsetY = 0;
+  updateFlowchartView();
+});
+
+function exportFlowchart(format) {
+  const svg = flowchartContainer.querySelector('svg');
+  if (!svg) return;
+  
+  const serializer = new XMLSerializer();
+  let source = serializer.serializeToString(svg);
+  
+  // Add proper SVG namespace
+  source = '<?xml version="1.0" standalone="no"?>\n' + 
+           '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' +
+           source;
+  
+  const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `flowchart.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Event Listeners
 analyzeButton.addEventListener('click', () => {
   analyzeButton.disabled = true;
 
@@ -875,7 +1130,7 @@ runButton.addEventListener('click', async () => {
       })
     });
 
-    const result = await response.json().catch(() => ({}));
+    let result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(
@@ -883,23 +1138,35 @@ runButton.addEventListener('click', async () => {
       );
     }
 
-    const parts = [];
+    // Some Judge0 instances may return a submission token while execution is pending.
+    if (result.token && result.status && [1, 2].includes(result.status.id)) {
+      runStatus.textContent = 'Code submitted; waiting for execution result...';
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const pollResponse = await fetch(
+          `https://ce.judge0.com/submissions/${encodeURIComponent(result.token)}?base64_encoded=false`,
+          { headers: { Accept: 'application/json' } }
+        );
+        const pollResult = await pollResponse.json().catch(() => ({}));
+        if (!pollResponse.ok) {
+          throw new Error(pollResult.message || pollResult.error || `HTTP ${pollResponse.status}`);
+        }
+        result = pollResult;
+        if (!result.status || ![1, 2].includes(result.status.id)) break;
+      }
+    }
 
+    const parts = [];
     if (result.stdout) parts.push('OUTPUT:\n' + result.stdout);
     if (result.stderr) parts.push('RUNTIME ERRORS:\n' + result.stderr);
-    if (result.compile_output) {
-      parts.push('COMPILATION OUTPUT:\n' + result.compile_output);
-    }
+    if (result.compile_output) parts.push('COMPILATION OUTPUT:\n' + result.compile_output);
     if (result.message) parts.push('MESSAGE:\n' + result.message);
+    if (result.status?.description) parts.push('STATUS: ' + result.status.description);
 
-    if (result.status?.description) {
-      parts.push('STATUS: ' + result.status.description);
-    }
-
-    output.textContent =
-      parts.join('\n\n') || 'Execution finished without output.';
-
-    runStatus.textContent = 'Execution request completed.';
+    output.textContent = parts.join('\n\n') || 'Execution finished without output.';
+    runStatus.textContent = result.status?.description
+      ? `Execution completed: ${result.status.description}.`
+      : 'Execution request completed.';
 
   } catch (error) {
     output.textContent =
@@ -997,6 +1264,74 @@ $('format-hints').addEventListener('click', () => {
       ${rules.map(rule => `<p>• ${escapeHTML(rule)}</p>`).join('')}
     </div>
   `;
+});
+
+// Flowchart button event
+generateFlowchartButton.addEventListener('click', () => {
+  const code = codeInput.value;
+  const language = languageSelect.value;
+  
+  if (!code.trim()) {
+    flowchartContainer.innerHTML = `
+      <div class="flowchart-placeholder">
+        <p>Please enter some code first.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  zoomLevel = 1;
+  offsetX = 0;
+  offsetY = 0;
+  renderFlowchart(code, language);
+});
+
+// Export buttons
+$('export-svg').addEventListener('click', () => {
+  exportFlowchart('svg');
+});
+
+$('export-png').addEventListener('click', () => {
+  const svg = flowchartContainer.querySelector('svg');
+  if (!svg) return;
+  
+  // Create a canvas for PNG conversion
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Get SVG dimensions
+  const bbox = svg.getBBox();
+  const width = Math.ceil(bbox.width || svg.clientWidth || 800);
+  const height = Math.ceil(bbox.height || svg.clientHeight || 600);
+  canvas.width = width * 2;
+  canvas.height = height * 2;
+  
+  // Draw SVG to canvas
+  const data = new XMLSerializer().serializeToString(svg);
+  const DOMURL = window.URL || window.webkitURL || window;
+  const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+  const url = DOMURL.createObjectURL(svgBlob);
+  
+  const img = new Image();
+  img.onload = function() {
+    ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+    DOMURL.revokeObjectURL(url);
+    
+    // Create download link
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'flowchart.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  
+  img.onerror = function() {
+    DOMURL.revokeObjectURL(url);
+    output.textContent = 'Could not export the flowchart as PNG. Please try exporting SVG instead.';
+  };
+
+  img.src = url;
 });
 
 </script>
