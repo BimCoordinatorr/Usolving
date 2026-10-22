@@ -8,7 +8,7 @@ Demo Video
 
 Watch the demo to see how CodeLab works, including code execution, static analysis, quality scoring, and actionable recommendations.
 
-▶ Watch the CodeLab Demo (MP4)
+https://github.com/user-attachments/assets/bc82a370-e9c1-4b35-8880-603db9eb5c58
 
 Overview
 
@@ -46,7 +46,7 @@ Run Locally
 
 Clone the repository:
 
-git clone https://github.com/BimCoordinatorr/Usolving.git
+[git clone https://github.com/BimCoordinatorr/Usolving.git](https://bimcoordinatorr.github.io/Usolving/)
 
 
 Open the project directory:
