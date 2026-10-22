@@ -4,6 +4,12 @@ An online coding workspace for writing, executing, and analyzing Python and Go c
 
 🚀 Launch CodeLab · View Repository · Report an Issue
 
+Demo Video
+
+Watch the demo to see how CodeLab works, including code execution, static analysis, quality scoring, and actionable recommendations.
+
+▶ Watch the CodeLab Demo (MP4)
+
 Overview
 
 CodeLab is a browser-based coding workspace that combines a code editor, online code execution, and a rule-based static analysis engine in one interface.
@@ -37,24 +43,29 @@ Click Analyze Code to generate a code quality report.
 Review the detected issues, quality metrics, and recommendations.
 Use Save Project and Load Project to manage your work in the same browser.
 Run Locally
+
 Clone the repository:
-[git clone https://github.com/bimcoordinatorr/Usolving.git](https://bimcoordinatorr.github.io/Usolving/)
+
+git clone https://github.com/BimCoordinatorr/Usolving.git
+
 
 Open the project directory:
+
 cd Usolving
+
 
 Open index.html in a modern web browser.
 
 No package installation or build process is required for the basic application.
 
 Technology Stack
-HTML5 — Application structure.
-CSS3 — Responsive layout and visual styling.
-JavaScript — Code execution requests, static analysis, and browser-side project management.
-Judge0 API — Online code execution service.
-Local Storage — Browser-based project persistence.
-Google Fonts (Inter) — Application typography.
-GitHub Pages — Static website hosting.
+HTML5: Application structure.
+CSS3: Responsive layout and visual styling.
+JavaScript: Code execution requests, static analysis, and browser-side project management.
+Judge0 API: Online code execution service.
+Local Storage: Browser-based project persistence.
+Google Fonts (Inter): Application typography.
+GitHub Pages: Static website hosting.
 Code Quality Analysis
 
 The built-in analyzer performs heuristic, rule-based checks for selected patterns, including:
@@ -81,8 +92,10 @@ Clearing browser storage may remove saved project data.
 Do not submit passwords, API keys, confidential source code, or other sensitive information unless you have reviewed the execution service's privacy and retention policies.
 Project Structure
 Usolving/
+├── assets/
+│   └── demo.mp4
 ├── index.html
-├── README.md
+├── readme.md
 └── LICENSE
 
 Limitations
